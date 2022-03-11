@@ -1,9 +1,9 @@
-using DelimitedFiles, StatGeochem, Plots, Vega, PyPlot
+using DelimitedFiles, StatGeochem, Plots, Vega, PyPlot, Printf
 include("function.jl")
 
 data = importdataset("phytoplankton.csv", ',', importas=:tuple)
 
-A = data.caab_code
+A = data.taxon_group
 # family_name = Set(A)
 d = Dict()
 intoDict(d, A)
@@ -14,7 +14,11 @@ d = sort(d; byvalue=true, rev=true)
 x = collect(keys(d))
 y = collect(values(d))
 
-print(x)
+Plots.bar(x,y)
+
+for i=2:6
+    @printf "%.f\n" (x[i])
+end
 
 sum_y = sum(y[1:length(y)-10])
 top_10_plankton = x[length(x)-9: length(x)]
@@ -50,8 +54,6 @@ anim = @animate for i in 1:length(lat)
 end
 
 gif(anim, fps=50)
-
-
 
 # lat_long_graph("Ceratiaceae", "Red")
 # lat_long_graph("Chaetocerotaceae", "Blue")

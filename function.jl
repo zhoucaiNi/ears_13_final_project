@@ -47,3 +47,48 @@ function intoDict(d, set)
         end
 end
 end
+
+function intoDictWithArray(d, set, indices)
+    for i=1:length(set)
+        if set[i] != "" || set[i] != NaN
+            value = get(d,set[i],0)
+            if value == 0
+                d[set[i]] = []
+                push!(d[set[i]], indices[i])
+            else
+                push!(d[set[i]], indices[i])
+            end
+        end
+end
+end
+
+
+function getByIndex(array, index)
+    res = []
+    if (typeof(array[1])) == typeof("String")
+        for i in index
+            if array[i] != ""
+            push!(res,array[i])
+        end
+        end
+    else
+    for i in index
+        if !isnan(array[i])
+        push!(res,array[i])
+    end
+    end
+end
+    return res
+end
+
+function getTwoVariables(latArray, longArray, index)
+    lat = []
+    long = []
+    for i in index
+        if !isnan(latArray[i]) && !isnan(longArray[i])
+        push!(lat,latArray[i])
+        push!(long, longArray[i])
+        end
+    end
+    return lat, long
+end
