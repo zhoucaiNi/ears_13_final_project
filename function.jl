@@ -92,3 +92,38 @@ function getTwoVariables(latArray, longArray, index)
     end
     return lat, long
 end
+
+## Converts lat and long values into values that matches the coordinates in a heat map
+function coordToHeatMap(latitude, longitude, latitude_start, longitude_start)
+    lati_converted = []
+    long_converted = []
+
+    for i=1:length(latitude)
+    push!(lati_converted, abs(latitude[i] - latitude_start) / 0.1)
+    push!(long_converted, abs(longitude[i] - longitude_start)/ 0.1)
+    # push!(lati_converted, abs(lati[i] - rand(-44:-18) )/0.1)
+    # push!(long_converted, abs(long[i] - rand(100:160) )/0.1)
+    end
+    return lati_converted, long_converted
+end
+
+## returns all the indices with the taxon_name
+function getIndices(taxon_name, allTaxon)
+    phytoplankton_taxon = taxon_name
+    phy_indices = []
+    for i=1:length(allTaxon)
+        if noctiluca[i] == phytoplankton_taxon
+            push!(phy_indices, i)
+        end
+    end
+    return phy_indices
+end
+
+##
+function getIndicesByYear(allSampleYear, indices)
+    sample_year = getByIndex(allSampleYear, indices)
+    indicesByYear = Dict()
+    intoDictWithArray(indicesByYear, sample_year, indices)
+    indicesByYear = sort(indicesByYear; byvalue=false)
+    return indicesByYear
+end
