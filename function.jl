@@ -1,39 +1,4 @@
-using DelimitedFiles, StatGeochem, Plots, PyPlot
-
-function lat_long_graph(name,color)
-    lat = data.Latitude
-    long = data.Longitude
-    time = data.SampleDateUTC
-
-    plank_lat = []
-    plank_long = []
-    plank_time = []
-
-    for i=1:length(A)
-        if cmp(A[i],"$name") == 0
-            push!(plank_lat, lat[i])
-            push!(plank_long, long[i])
-            push!(plank_time, time[i])
-        end
-    end
-
-    perm = sortperm(plank_time)
-    # merge = [plank_lat[perm], plank_long[perm], plank_time[perm]]
-    # print(merge)
-    # i = 5
-    # @gif for i in 1:5
-    # t = plank_time[i]
-    # plot([plank_long[perm][i]], [plank_lat[perm][i]],
-    #     xlabel="longitude",
-    #     ylabel="latitude",
-    #     # label="$(t)",
-    #     color="$color",
-    #     alpha=1,
-    #     seriestype=:scatter)
-    # end
-    # savefig("$name.png")
-    return plank_lat[perm], plank_long[perm], plank_time[perm]
-end
+using DelimitedFiles, StatGeochem, Plots, Polynomials
 
 function intoDict(d, set)
     for i=1:length(set)
@@ -112,7 +77,7 @@ function getIndices(taxon_name, allTaxon)
     phytoplankton_taxon = taxon_name
     phy_indices = []
     for i=1:length(allTaxon)
-        if noctiluca[i] == phytoplankton_taxon
+        if allTaxon[i] == phytoplankton_taxon
             push!(phy_indices, i)
         end
     end
@@ -126,4 +91,92 @@ function getIndicesByYear(allSampleYear, indices)
     intoDictWithArray(indicesByYear, sample_year, indices)
     indicesByYear = sort(indicesByYear; byvalue=false)
     return indicesByYear
+end
+
+##
+function monthVolumePlot(indices, label, t)
+    months = 1:12
+    sumvolumes = zeros(12)
+    N = fill(0, 12)
+    for i in indices
+        m = Int(phy_month[i])
+        v = phy_volume[i]
+        if v < 1.5e11
+            sumvolumes[m] += isnan(v) ? 0 : v
+            N[m] += 1
+        end
+    end
+    volumes = sumvolumes ./ N
+    if t == 1
+        plot!(months, volumes,label=label)
+    else
+        plot(months, volumes,label=label)
+    end
+    return volumes
+end
+
+## Creates a heatmap using bathymetry data and then plots the coordinates of phytoplanktons
+function phyto_map(latitude, longitude, label, etopo)
+    # lati,long  = getTwoVariables(dino10_22.LATITUDE, dino10_22.LONGITUDE, phy_indices)
+    lat = -50:0.1:10
+    lon = 100:0.1:160
+    latm = repeat(lat,1,length(lon))
+    lonm = repeat(lon',length(lat),1)
+    elevs = find_etopoelev(etopo, latm, lonm)
+    heatmap(elevs)
+
+    lati_converted, long_converted = coordToHeatMap(latitude, longitude, -50, 100)
+
+    plot!(long_converted, lati_converted,
+        label="$(label)",
+        color="blue",
+        alpha=0.5,
+        seriestype=:scatter
+        )
+end
+
+
+function nlin_fit(model, xdata, ydata, p0)
+
+    nlinfit = curve_fit(model, xdata, ydata, p0)
+    pfit = nlinfit.param
+    print(pfit)
+    xlin = range(xdata[1], xdata[end], length=200)
+
+    Plots.scatter(xdata, ydata, markersize=3, legend=:topright, label="data")
+    Plots.plot!(xlin, model(xlin, [p0[1], p0[2]]), label="initial model")
+    Plots.plot!(xlin, model(xlin, [pfit[1], pfit[2]]), linestyle=:dash, label="fitted model", dpi=200)
+
+    xaxis!("x")
+    yaxis!("y")
+    title!("nonlinear fit")
+
+end
+
+function poly_fit(xdata, ydata,label)
+
+    pfit1 = Polynomials.fit(xdata, ydata, 1)
+    pfit2 = Polynomials.fit(xdata, ydata, 2)
+    pfit3 = Polynomials.fit(xdata, ydata, 3)
+    pfit4 = Polynomials.fit(xdata, ydata, 4)
+
+    xlin = range(xdata[1], xdata[end], length=300)
+
+    # plotting
+    Plots.scatter(xdata, ydata, markersize=3, legend=:topright, label=label)
+    plot!(xlin, pfit1.(xlin), linestyle=:dash, label="f(x) = x")
+    plot!(xlin, pfit2.(xlin), label="f(x) = x²")
+    plot!(xlin, pfit3.(xlin), label="f(x) = x³", dpi=200)
+    plot!(xlin, pfit4.(xlin), label="f(x) = x⁴", dpi=200)
+
+    # pfit1 = Polynomials.fit(xdata[1:5], ydata[1:5], 3)
+    # pfit2 = Polynomials.fit(xdata[5:end], ydata[5:end], 1)
+
+    Plots.plot!(xlin[1:50], pfit1.(xlin[1:50]), label="f(x) = x³")
+    # Plots.plot!(xlin[50:end], pfit2.(xlin[50:end]), label="f(x) = x", dpi=200)
+
+    xaxis!("x")
+    yaxis!("y")
+    title!("poly fit")
+
 end

@@ -1,4 +1,4 @@
-using DelimitedFiles, StatGeochem, Plots, Statistics, Distributions
+using DelimitedFiles, StatGeochem, Plots, Statistics, Distributions, LsqFit
 include("function.jl")
 
 ## Importing dataset
@@ -42,6 +42,7 @@ latm = repeat(lat,1,length(lon))
 lonm = repeat(lon',length(lat),1)
 elevs = find_etopoelev(etopo, latm, lonm)
 heatmap(elevs)
+Plots.savefig("heat_map.png")
 plot!(
     long_converted,
     lati_converted,
@@ -50,15 +51,24 @@ plot!(
     label="temperature_argos (2010)",
     seriestype=:scatter
     )
-savefig("filter_temp_argo_2010.png")
+Plots.savefig("filter_temp_argo_2010.png")
 
-filter_lon
-filter_lat
-plot(
+Plots.plot(
     filter_lon,
     filter_lat,
     xlabel="longitude",
     ylabel="latitude",
+    seriestype=:scatter
+    )
+
+
+lat, lon = coordToHeatMap(lat, lon, -50, 100)
+plot!(
+    lon,
+    lat,
+    # xlabel="longitude",
+    # ylabel="latitude",
+    label="temperature_argos (2010)",
     seriestype=:scatter
     )
 
@@ -70,11 +80,10 @@ temp = argo_2010.temp_adjusted
 argo_time = argo_2010.juld
 
 for i=1:length(argo_time)
-    argo_time[i] = parse(Int64, argo_time[i][6:7])
+    argo_time[i] = argo_time[i][6:7]
 end
 
-argo_time = parse.(Float64, argo_time)
-
+argo_time = parse.(Int64, argo_time)
 
 months = 1:12
 sumvolumes = zeros(12)
@@ -88,10 +97,63 @@ for i in filter_coord_indices
 end
 volumes = sumvolumes ./ N
 
-plot(
+Plots.plot(
     months,
     volumes,
     label="Monthly Average Temperature (2010)")
 
-savefig("filter_monthly_temp.png")
+linreg_res = []
+
+for i=1:5
+    push!(linreg_res, linreg(volumes, top5_average_monthly_volume[i]))
+end
+
+for i=1:5
+    println(linreg_res[i])
+end
+
+function graphLinearReg(t, label)
+    Plots.plot(
+        volumes,
+        top5_average_monthly_volume[t],
+        seriestype=:scatter,
+        xlabel = "temperature (celsius)",
+        ylabel = "biovolume (µm³/L)",
+        label=label
+        )
+
+    regression = []
+    for i in volumes
+        push!(regression,linreg_res[t][1] + (linreg_res[t][2] * i))
+    end
+    Plots.plot!(
+        volumes,
+        regression,
+        label="linear regression plot ($(linreg_res[t][1]) + $(linreg_res[t][2])x")
+end
+
+
+graphLinearReg(1, top5_list[1])
+Plots.savefig("$(top5_list[1])reg.png")
+
+graphLinearReg(2, top5_list[2])
+Plots.savefig("$(top5_list[2])reg.png")
+
+graphLinearReg(3, top5_list[3])
+Plots.savefig("$(top5_list[3])reg.png")
+
+graphLinearReg(4, top5_list[4])
+Plots.savefig("$(top5_list[4])reg.png")
+
+graphLinearReg(5, top5_list[5])
+Plots.savefig("$(top5_list[5])reg.png")
+
+
+# savefig("filter_monthly_temp.png")
+xdata = volumes
+
+for i=1:5
+    ydata = top5_average_monthly_volume[i]
+    poly_fit(xdata, ydata, top5_list[i] )
+    Plots.savefig("$(top5_list[i])_poly.png")
 end
