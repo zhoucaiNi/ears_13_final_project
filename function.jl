@@ -1,5 +1,6 @@
 using DelimitedFiles, StatGeochem, Plots, Polynomials
 
+# turns a set into a dictionary
 function intoDict(d, set)
     for i=1:length(set)
         if set[i] != "" || set[i] != NaN
@@ -13,6 +14,7 @@ function intoDict(d, set)
 end
 end
 
+# turns a dictionary with indices
 function intoDictWithArray(d, set, indices)
     for i=1:length(set)
         if set[i] != "" || set[i] != NaN
@@ -28,6 +30,7 @@ end
 end
 
 
+# get a vector with values using the indices
 function getByIndex(array, index)
     res = []
     if (typeof(array[1])) == typeof("String")
@@ -46,6 +49,7 @@ end
     return res
 end
 
+# get two variables
 function getTwoVariables(latArray, longArray, index)
     lat = []
     long = []
@@ -136,6 +140,7 @@ function phyto_map(latitude, longitude, label, etopo)
 end
 
 
+# Linear regression
 function nlin_fit(model, xdata, ydata, p0)
 
     nlinfit = curve_fit(model, xdata, ydata, p0)
@@ -153,6 +158,7 @@ function nlin_fit(model, xdata, ydata, p0)
 
 end
 
+# Polynomial regression
 function poly_fit(xdata, ydata,label)
 
     pfit1 = Polynomials.fit(xdata, ydata, 1)
@@ -168,12 +174,6 @@ function poly_fit(xdata, ydata,label)
     plot!(xlin, pfit2.(xlin), label="f(x) = x²")
     plot!(xlin, pfit3.(xlin), label="f(x) = x³", dpi=200)
     plot!(xlin, pfit4.(xlin), label="f(x) = x⁴", dpi=200)
-
-    # pfit1 = Polynomials.fit(xdata[1:5], ydata[1:5], 3)
-    # pfit2 = Polynomials.fit(xdata[5:end], ydata[5:end], 1)
-
-    Plots.plot!(xlin[1:50], pfit1.(xlin[1:50]), label="f(x) = x³")
-    # Plots.plot!(xlin[50:end], pfit2.(xlin[50:end]), label="f(x) = x", dpi=200)
 
     xaxis!("x")
     yaxis!("y")

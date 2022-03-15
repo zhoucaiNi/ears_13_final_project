@@ -3,16 +3,19 @@ include("function.jl")
 
 ## Importing dataset
 argo_2010 = importdataset("temp2010.csv", ',', importas=:Tuple)
+etopo = get_etopo("elevation")
 
 ## Plotting coordinates
 lat = argo_2010.latitude
 lon = argo_2010.longitude
 
+# coordinate restrictions
 lat_limit = [-44,-18]
 lon_limit = [135, 154]
 
 filter_coord_indices = []
 
+# for loop to filter the argo floats to between the coordinate restrictions.
 for i=1:length(lat)
     currLat = lat[i]
     currLon = lon[i]
@@ -26,33 +29,21 @@ end
 
 filter_coord_indices
 
+# using the indices to make a vector with the actual value
 filter_lat = []
 filter_lon = []
-
 for i in filter_coord_indices
     push!(filter_lat, lat[i])
     push!(filter_lon, lon[i])
 end
 
-# lati,long  = getTwoVariables(dino10_22.LATITUDE, dino10_22.LONGITUDE, phy_indices)
-lati_converted, long_converted = coordToHeatMap(filter_lat, filter_lon, -50, 100)
-lat = -50:0.1:10
-lon = 100:0.1:160
-latm = repeat(lat,1,length(lon))
-lonm = repeat(lon',length(lat),1)
-elevs = find_etopoelev(etopo, latm, lonm)
-heatmap(elevs)
-Plots.savefig("heat_map.png")
-plot!(
-    long_converted,
-    lati_converted,
-    # xlabel="longitude",
-    # ylabel="latitude",
-    label="temperature_argos (2010)",
-    seriestype=:scatter
-    )
+## Graphing the temp argos
+
+phyto_map(filter_lat, filter_lon, "temperature_argos (2010)", etopo)
+
 Plots.savefig("filter_temp_argo_2010.png")
 
+## without the heat map
 Plots.plot(
     filter_lon,
     filter_lat,
@@ -61,23 +52,14 @@ Plots.plot(
     seriestype=:scatter
     )
 
-
-lat, lon = coordToHeatMap(lat, lon, -50, 100)
-plot!(
-    lon,
-    lat,
-    # xlabel="longitude",
-    # ylabel="latitude",
-    label="temperature_argos (2010)",
-    seriestype=:scatter
-    )
-
-
-## Plotting temperature
+## graphs the average monthly temperature
 filter_temp = []
 
+# parsing the time
 temp = argo_2010.temp_adjusted
 argo_time = argo_2010.juld
+
+# gets the month of the argo_time string
 
 for i=1:length(argo_time)
     argo_time[i] = argo_time[i][6:7]
@@ -86,21 +68,24 @@ end
 argo_time = parse.(Int64, argo_time)
 
 months = 1:12
-sumvolumes = zeros(12)
+sumtemps = zeros(12)
 N = fill(0, 12)
 for i in filter_coord_indices
     m = Int(argo_time[i])
     v = temp[i]
-    sumvolumes[m] += isnan(v) ? 0 : v
+    sumtemps[m] += isnan(v) ? 0 : v
     N[m] += 1
     end
-end
-volumes = sumvolumes ./ N
+
+temps = sumtemps ./ N
 
 Plots.plot(
     months,
-    volumes,
+    temps,
     label="Monthly Average Temperature (2010)")
+
+
+## Regression Analyis
 
 linreg_res = []
 
@@ -108,9 +93,7 @@ for i=1:5
     push!(linreg_res, linreg(volumes, top5_average_monthly_volume[i]))
 end
 
-for i=1:5
-    println(linreg_res[i])
-end
+# Function to graph the linear regression
 
 function graphLinearReg(t, label)
     Plots.plot(
@@ -133,6 +116,8 @@ function graphLinearReg(t, label)
 end
 
 
+## Plotting for all the taxon
+
 graphLinearReg(1, top5_list[1])
 Plots.savefig("$(top5_list[1])reg.png")
 
@@ -148,10 +133,9 @@ Plots.savefig("$(top5_list[4])reg.png")
 graphLinearReg(5, top5_list[5])
 Plots.savefig("$(top5_list[5])reg.png")
 
-
-# savefig("filter_monthly_temp.png")
 xdata = volumes
 
+## Polynomial regression and plotting
 for i=1:5
     ydata = top5_average_monthly_volume[i]
     poly_fit(xdata, ydata, top5_list[i] )
